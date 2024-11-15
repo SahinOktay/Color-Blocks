@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 261984d6b3f41864bb11d00a4341c3cd, type: 3}
+  m_Name: BlockTextureMap
+  m_EditorClassIdentifier: 
+  textureConfigs:
+  - blockColor: 0
+    gateColor: {r: 1, g: 0, b: 0, a: 1}
+    horizontalShort: {fileID: 2800000, guid: b0ffc8b9879c15a4381a66f706fcdbf1, type: 3}
+    horizontalLong: {fileID: 2800000, guid: 481d00615f2b33e44b4dff502c30cc4c, type: 3}
+    verticalShort: {fileID: 2800000, guid: bf095b8587228e1489374705492e56e5, type: 3}
+    verticalLong: {fileID: 2800000, guid: b78ebe8d0e084d84cafc44ccbb6b0106, type: 3}
+  - blockColor: 1
+    gateColor: {r: 0, g: 1, b: 0, a: 1}
+    horizontalShort: {fileID: 2800000, guid: 2f7cf8a88d71eef4193937fc945b1a26, type: 3}
+    horizontalLong: {fileID: 2800000, guid: c68fe28df9276744bb76bf92c5f459c4, type: 3}
+    verticalShort: {fileID: 2800000, guid: 2f07a280ab7e69745ac2d249c5cd8ebc, type: 3}
+    verticalLong: {fileID: 2800000, guid: bc6bdbd3da3c8314c8d48b3f0dd9f36a, type: 3}
+  - blockColor: 2
+    gateColor: {r: 0, g: 0.2784314, b: 1, a: 1}
+    horizontalShort: {fileID: 2800000, guid: 0ea89a2a83fe87445ad5bf65cf51aa89, type: 3}
+    horizontalLong: {fileID: 2800000, guid: 850495b5be011f74cbc679f207ebabfb, type: 3}
+    verticalShort: {fileID: 2800000, guid: 1f06ad281cbf2df4da94bc024f1417a1, type: 3}
+    verticalLong: {fileID: 2800000, guid: 1421a7b5d7b08f841a191be1eb2a4b70, type: 3}
+  - blockColor: 3
+    gateColor: {r: 1, g: 1, b: 0, a: 1}
+    horizontalShort: {fileID: 2800000, guid: 8ec2297d51dcc504bbd2e8619c694493, type: 3}
+    horizontalLong: {fileID: 2800000, guid: e73b032c833f6d040941a2e4908e16ab, type: 3}
+    verticalShort: {fileID: 2800000, guid: 6b6c197f957ea9747b45649ce6b69eb5, type: 3}
+    verticalLong: {fileID: 2800000, guid: 2d8e450b7518942418a3b9b62e381466, type: 3}
+  - blockColor: 4
+    gateColor: {r: 1, g: 0, b: 1, a: 1}
+    horizontalShort: {fileID: 2800000, guid: d08ee34066c16824984fbfda8755ffad, type: 3}
+    horizontalLong: {fileID: 2800000, guid: 9811732b68e832e4f92067cf3b0de481, type: 3}
+    verticalShort: {fileID: 2800000, guid: 8d817723443ad974cbf30bceec5d635e, type: 3}
+    verticalLong: {fileID: 2800000, guid: 399e1a1c9f122464c86f7a3842d4fb98, type: 3}

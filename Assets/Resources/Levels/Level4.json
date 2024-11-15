@@ -1,0 +1,261 @@
+{
+  "MoveLimit": 15,
+  "RowCount": 4,
+  "ColCount": 4,
+  "CellInfo": [
+    {
+      "Row": 3,
+      "Col": 0
+    },
+    {
+      "Row": 2,
+      "Col": 0
+    },
+    {
+      "Row": 1,
+      "Col": 0
+    },
+    {
+      "Row": 0,
+      "Col": 0
+    },
+    {
+      "Row": 3,
+      "Col": 1
+    },
+    {
+      "Row": 2,
+      "Col": 1
+    },
+    {
+      "Row": 1,
+      "Col": 1
+    },
+    {
+      "Row": 0,
+      "Col": 1
+    },
+    {
+      "Row": 3,
+      "Col": 2
+    },
+    {
+      "Row": 2,
+      "Col": 2
+    },
+    {
+      "Row": 1,
+      "Col": 2
+    },
+    {
+      "Row": 0,
+      "Col": 2
+    },
+    {
+      "Row": 3,
+      "Col": 3
+    },
+    {
+      "Row": 2,
+      "Col": 3
+    },
+    {
+      "Row": 1,
+      "Col": 3
+    },
+    {
+      "Row": 0,
+      "Col": 3
+    }
+  ],
+  "MovableInfo": [
+    {
+      "Row": 2,
+      "Col": 0,
+      "Direction": [
+        0,
+        2
+      ],
+      "Length": 1,
+      "Colors": 2
+    },
+    {
+      "Row": 1,
+      "Col": 0,
+      "Direction": [
+        1,
+        3
+      ],
+      "Length": 1,
+      "Colors": 3
+    },
+    {
+      "Row": 2,
+      "Col": 1,
+      "Direction": [
+        1,
+        3
+      ],
+      "Length": 2,
+      "Colors": 4
+    },
+    {
+      "Row": 0,
+      "Col": 1,
+      "Direction": [
+        0,
+        2
+      ],
+      "Length": 2,
+      "Colors": 3
+    },
+    {
+      "Row": 3,
+      "Col": 2,
+      "Direction": [
+        0,
+        2
+      ],
+      "Length": 1,
+      "Colors": 0
+    },
+    {
+      "Row": 1,
+      "Col": 2,
+      "Direction": [
+        0,
+        2
+      ],
+      "Length": 1,
+      "Colors": 0
+    },
+    {
+      "Row": 0,
+      "Col": 2,
+      "Direction": [
+        1,
+        3
+      ],
+      "Length": 1,
+      "Colors": 0
+    },
+    {
+      "Row": 3,
+      "Col": 3,
+      "Direction": [
+        1,
+        3
+      ],
+      "Length": 1,
+      "Colors": 3
+    },
+    {
+      "Row": 1,
+      "Col": 3,
+      "Direction": [
+        0,
+        2
+      ],
+      "Length": 2,
+      "Colors": 4
+    }
+  ],
+  "ExitInfo": [
+    {
+      "Row": 3,
+      "Col": 0,
+      "Direction": 2,
+      "Colors": 0
+    },
+    {
+      "Row": 3,
+      "Col": 1,
+      "Direction": 2,
+      "Colors": 3
+    },
+    {
+      "Row": 3,
+      "Col": 2,
+      "Direction": 2,
+      "Colors": 2
+    },
+    {
+      "Row": 3,
+      "Col": 3,
+      "Direction": 2,
+      "Colors": 4
+    },
+    {
+      "Row": 0,
+      "Col": 0,
+      "Direction": 0,
+      "Colors": 2
+    },
+    {
+      "Row": 0,
+      "Col": 1,
+      "Direction": 0,
+      "Colors": 0
+    },
+    {
+      "Row": 0,
+      "Col": 2,
+      "Direction": 0,
+      "Colors": 0
+    },
+    {
+      "Row": 0,
+      "Col": 3,
+      "Direction": 0,
+      "Colors": 4
+    },
+    {
+      "Row": 3,
+      "Col": 0,
+      "Direction": 3,
+      "Colors": 3
+    },
+    {
+      "Row": 2,
+      "Col": 0,
+      "Direction": 3,
+      "Colors": 4
+    },
+    {
+      "Row": 1,
+      "Col": 0,
+      "Direction": 3,
+      "Colors": 2
+    },
+    {
+      "Row": 0,
+      "Col": 0,
+      "Direction": 3,
+      "Colors": 0
+    },
+    {
+      "Row": 3,
+      "Col": 3,
+      "Direction": 1,
+      "Colors": 4
+    },
+    {
+      "Row": 2,
+      "Col": 3,
+      "Direction": 1,
+      "Colors": 2
+    },
+    {
+      "Row": 1,
+      "Col": 3,
+      "Direction": 1,
+      "Colors": 3
+    },
+    {
+      "Row": 0,
+      "Col": 3,
+      "Direction": 1,
+      "Colors": 3
+    }
+  ]
+}
