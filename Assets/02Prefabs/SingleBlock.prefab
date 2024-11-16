@@ -10,7 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 6225061589544318297}
   - component: {fileID: -4778365098450273581}
-  m_Layer: 0
+  - component: {fileID: 2431421487046738740}
+  m_Layer: 6
   m_Name: SingleBlock
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -48,6 +49,27 @@ MonoBehaviour:
   length: 1
   blockRenderer: {fileID: 4678760090018270820}
   blockTextureMap: {fileID: 11400000, guid: 2eac9757d50d9a34596c7dd19ccefab8, type: 2}
+--- !u!65 &2431421487046738740
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3329629512808520842}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 0.74, z: 1}
+  m_Center: {x: 0, y: 0.35, z: 0}
 --- !u!1001 &6282484245238829792
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -107,6 +129,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 0034648df75e58c44bdcafe82665bc7a, type: 3}
       propertyPath: m_Name
       value: Cube1
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 0034648df75e58c44bdcafe82665bc7a, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
