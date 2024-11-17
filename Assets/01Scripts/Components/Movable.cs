@@ -1,7 +1,7 @@
 using DG.Tweening;
 using System.Linq;
 using UnityEngine;
-using static UnityEditor.PlayerSettings;
+using System;
 
 namespace FOMO
 {
@@ -9,30 +9,26 @@ namespace FOMO
 
     public abstract class Movable : GridElement
     {
-        [SerializeField] private int length;
+        private int _movementDirection;
 
-        public int direction;
-        
-        public int Length => length;
-        public Dimention Dimention { get; private set; }
+        public Action<Movable, int, int> MovementEnded;
 
-        public void Initialize(Dimention dimention)
+        private float MovementDuration(Vector3 targetPos) => Vector3.Distance(transform.position, targetPos) / Constants.Numbers.BLOCK_SPEED;
+
+        protected void Move(Vector3 pos, int directionNumber, VoidDelegate onComplete)
         {
-            Dimention = dimention;
-        }
-
-        protected void Move(Vector3 pos, VoidDelegate onComplete)
-        {
-            transform.DOMove(pos, MovementDuration(pos)).SetEase(Ease.Linear).OnComplete(() => onComplete());
+            _movementDirection = directionNumber;
+            transform.DOMove(pos, MovementDuration(pos)).SetEase(Ease.Linear).OnComplete(() => {
+                MovementEnded?.Invoke(this, _movementDirection, 2);
+                onComplete();
+            });
         }
 
         public abstract void GetBumped(int direction, float strength = .5f);
 
-        private float MovementDuration(Vector3 targetPos) => Vector3.Distance(transform.position, targetPos) / Constants.Numbers.BLOCK_SPEED;
-
-        public void Move(Vector3 pos)
+        public void Move(Vector3 pos, int directionNumber)
         {
-            transform.DOMove(pos, MovementDuration(pos)).SetEase(Ease.Linear);
+            Move(pos, directionNumber, () => { });
         }
     }
 }

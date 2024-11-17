@@ -1,9 +1,7 @@
-using NUnit.Framework;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.EnhancedTouch;
 
 namespace FOMO
 {
@@ -22,11 +20,14 @@ namespace FOMO
             singleBlock, 
             doubleBlock;
         [SerializeField] private PlayerInput playerInput;
-
+        [SerializeField] private UIController uiController;
+        
+        private bool _canMakeAMove = true;
         private readonly Dictionary<ExitKey, Exit> _exits = new();
         private float _movePixelThreshold;
         private GridCell[][] _grid;
         private readonly HashSet<Block> _blocks = new();
+        private int _currentLevel = 4, _remainingMoves;
         private InputAction _touchStartAction, _touchMoveAction;
         private Movable _movable;
         private Vector2 _touchStartPos;
@@ -46,8 +47,12 @@ namespace FOMO
             movableParent.transform.SetParent(levelParent.transform);
 
             LevelData levelData = JsonUtility.FromJson<LevelData>(
-                Resources.Load<TextAsset>("Levels/Level4").text
+                Resources.Load<TextAsset>("Levels/Level" + _currentLevel).text
             );
+
+            _remainingMoves = levelData.MoveLimit;
+
+            uiController.Initialize(_currentLevel, _remainingMoves);
 
             _gridSize = new Vector2Int(levelData.ColCount, levelData.RowCount);
             List<List<GridCell>> gridList = new List<List<GridCell>>();
@@ -161,14 +166,38 @@ namespace FOMO
             _touchStartAction.performed += OnTouch;
         }
 
+        private void Win()
+        {
+            Debug.Log("Win");
+        }
+
+        private void Lose()
+        {
+            Debug.Log("Lose");
+        }
+
         private void OnBlockDestroyed(Block block)
         {
             block.Destroyed -= OnBlockDestroyed;
+            _blocks.Remove(block);
             EmptyCells(block);
+
+            _canMakeAMove = true;
+
+            if (_blocks.Count == 0)
+            {
+                Win();
+            }
+            else if (_remainingMoves == 0)
+            {
+                Lose();
+            }
         }
 
         private void OnTouch(InputAction.CallbackContext context)
         {
+            if (!_canMakeAMove) return;
+
             if (
                 Physics.Raycast(
                     Camera.main.ScreenPointToRay(context.ReadValue<Vector2>()),
@@ -198,11 +227,11 @@ namespace FOMO
             Dimention movementDimention = Mathf.Abs(differenceVector.x) > Mathf.Abs(differenceVector.y) ? 
                 Dimention.Horizontal : Dimention.Vertical;
 
-            int movementDirection;
+            int directionNumber;
             if (movementDimention == Dimention.Horizontal)
-                movementDirection = differenceVector.x > 0 ? 1 : 3;
+                directionNumber = differenceVector.x > 0 ? 1 : 3;
             else
-                movementDirection = differenceVector.y > 0 ? 0 : 2;
+                directionNumber = differenceVector.y > 0 ? 0 : 2;
 
             if (_movable.Dimention != movementDimention) 
             {
@@ -211,24 +240,16 @@ namespace FOMO
                 return; 
             }
 
-            Vector2Int directionVector = movementDirection switch
-            {
-                0 => Vector2Int.down,
-                1 => Vector2Int.right,
-                2 => Vector2Int.up,
-                3 => Vector2Int.left,
-                _ => Vector2Int.zero,
-            };
+            Vector2Int directionVector = Constants.Calculators.GetDirectionVector(directionNumber);
 
             // This variable is used to calculate which cells to check
             // If direction is positive we need to consider length of the block
             // If it is negative length is not included in the calculation because pivots of the blocks are at the start of the block
-            bool isPositiveDirection = movementDirection is 1 or 2;
+            bool isPositiveDirection = directionNumber is 1 or 2;
 
-            Vector2Int currentCell = _movable.coordinates + 
-                (isPositiveDirection ? (directionVector * (_movable.Length - 1)) : Vector2Int.zero);
-            Vector2Int nextCellToCheck = _movable.coordinates + 
-                (isPositiveDirection ? (directionVector * _movable.Length) : directionVector);
+            Vector2Int currentCell = _movable.GetLastCellAtDirection(directionNumber);
+
+            Vector2Int nextCellToCheck = _movable.GetLastCellAtDirection(directionNumber) + directionVector;
 
             int movementCount = 0;
             // Check for available cells
@@ -247,7 +268,7 @@ namespace FOMO
             }
 
             ExitKey exitKey = new ExitKey() {
-                direction = movementDirection,
+                direction = directionNumber,
                 coordinates = nextCellToCheck - directionVector
             };
             bool isExiting = _exits.ContainsKey(exitKey) && _movable is IGrindable;
@@ -256,6 +277,8 @@ namespace FOMO
             {
                 _touchMoveAction.performed -= OnTouchMove;
                 _touchStartAction.performed += OnTouch;
+                PushOtherBlocks(_movable, directionNumber, 1);
+
                 return; 
             }
 
@@ -264,25 +287,31 @@ namespace FOMO
             EmptyCells(_movable);
 
             _movable.coordinates = targetCell;
-            _movable.direction = movementDirection;
             if (!isExiting)
             {
-                _movable.Move(_grid[targetCell.y][targetCell.x].tile.transform.position);
+                _canMakeAMove = false;
+                _movable.MovementEnded += PushOtherBlocks;
+                _movable.Move(_grid[targetCell.y][targetCell.x].tile.transform.position, directionNumber);
 
                 FillCells();
             }
             else
             {
+                _canMakeAMove = false;
                 IGrindable grindable = _movable as IGrindable;
-                _exits[exitKey].WaitForGrindable(grindable);
-                grindable.MoveAndExit(_grid[targetCell.y][targetCell.x].tile.transform.position, isPositiveDirection);
-                _blocks.Remove(_movable as Block);
+                grindable.MoveAndExit(_grid[targetCell.y][targetCell.x].tile.transform.position, isPositiveDirection, directionNumber);
+                if (!_exits[exitKey].WaitForGrindable(grindable))
+                {
+                    _movable.MovementEnded += EnableMovement;
+                }
             }
 
             FillCells();
 
             _touchMoveAction.performed -= OnTouchMove;
-            _touchStartAction.performed += OnTouch;
+
+            if (--_remainingMoves > 0) _touchStartAction.performed += OnTouch;
+            uiController.SetMoveCount(_remainingMoves);
         }
 
         private void EmptyCells(Movable movable)
@@ -303,6 +332,47 @@ namespace FOMO
                     [_movable.coordinates.x + (_movable.Dimention == Dimention.Horizontal ? i : 0)]
                     .occupyingElement = _movable;
             }
+        }
+
+        private void EnableMovement(Movable movable, int directionNumber, int cellCount)
+        {
+            movable.MovementEnded -= PushOtherBlocks;
+            _canMakeAMove = true;
+        }
+
+        private void PushOtherBlocks(Movable movable, int directionNumber, int cellCount)
+        {
+            movable.MovementEnded -= PushOtherBlocks;
+            _canMakeAMove = true;
+
+            Vector2Int directionVector = Constants.Calculators.GetDirectionVector(directionNumber);
+
+            int stepCount = 0;
+            Vector2Int bumpedCell = movable.GetLastCellAtDirection(directionNumber) + directionVector;
+
+            // Handle blocks bumping each other
+            while (
+                bumpedCell.x >= 0 &&
+                bumpedCell.x < _gridSize.x &&
+                bumpedCell.y >= 0 &&
+                bumpedCell.y < _gridSize.y
+                && stepCount < cellCount
+            )
+            {
+                if (_grid[bumpedCell.y][bumpedCell.x].occupyingElement is Movable nextMovable)
+                {
+                    nextMovable.GetBumped(directionNumber, Mathf.Lerp(1, .5f, stepCount / (float)cellCount));
+                }
+                stepCount++;
+                bumpedCell += directionVector;
+            }
+
+            if (stepCount > 0)
+            {
+                movable.GetBumped(directionNumber, 1f);
+            }
+
+            if (_remainingMoves == 0) Lose();
         }
     }
 }    

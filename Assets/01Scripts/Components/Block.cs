@@ -26,7 +26,7 @@ namespace FOMO
         public override void GetBumped(int direction, float strength = .5f)
         {
             bumpBone.DORotate(
-                (Quaternion.Euler(0, 90 * direction, 0)) * new Vector3(90 * strength, 0, 0),
+                (Quaternion.Euler(0, 90 * direction, 0)) * new Vector3(30 * strength, 0, 0),
                 .15f,
                 RotateMode.WorldAxisAdd
             ).SetEase(Ease.OutCubic).OnComplete(() => { 
@@ -34,9 +34,13 @@ namespace FOMO
             });
         }
 
-        public void MoveAndExit(Vector3 pos, bool isPositiveDirection)
+        public void MoveAndExit(Vector3 pos, bool isPositiveDirection, int directionNumber)
         {
-            Move(pos, () => { ReachedGrinder?.Invoke(this, isPositiveDirection, Length); });
+            Move(
+                pos, 
+                directionNumber , 
+                () => ReachedGrinder?.Invoke(this, isPositiveDirection, Length)
+            );
         }
 
         public void GetGrinded(Vector3 pos, float duration)

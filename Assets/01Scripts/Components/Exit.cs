@@ -15,11 +15,13 @@ public class Exit : MonoBehaviour
 
     [SerializeField] private BlockTextureMap blockTextureMap;
     [SerializeField] private ColoredElements[] coloredElements;
+    [SerializeField] private GameObject blockingQuad;
     [SerializeField] private ParticleSystem grindParticle;
     [SerializeField] private Transform gateParent, grindingPart;
 
     private BlockColor[] _colors;
     private static float _grindDuration = .75f;
+
     public int Direction {  get; private set; }
 
     public void Initialize(BlockColor[] colors, int direction)
@@ -41,9 +43,11 @@ public class Exit : MonoBehaviour
         }
     }
 
-    public void WaitForGrindable(IGrindable grindable)
+    public bool WaitForGrindable(IGrindable grindable)
     {
         grindable.ReachedGrinder += OnBlockReach;
+
+        return _colors.Contains(grindable.Color);
     }
 
     public void OnBlockReach(IGrindable grindable, bool isPositiveDirection, int length)
@@ -52,7 +56,7 @@ public class Exit : MonoBehaviour
 
         if (!_colors.Contains(grindable.Color))
         {
-            if (grindable is Movable movable) movable.GetBumped(Direction);
+            if (grindable is Movable movable) movable.GetBumped(Direction, 1f);
             gateParent.DORotate(new Vector3(-30, 0, 0), .15f, RotateMode.LocalAxisAdd).SetEase(Ease.OutCubic).OnComplete(() =>
             {
                 gateParent.DORotate(new Vector3(30, 0, 0), .15f, RotateMode.LocalAxisAdd).SetEase(Ease.InOutCubic);
@@ -65,12 +69,13 @@ public class Exit : MonoBehaviour
             (Constants.Numbers.CELL_SIZE * (length + .5f)),
             _grindDuration
         );
+        blockingQuad.SetActive(true);
 
         gateParent.localPosition += Vector3.down;
         grindingPart.DOMoveY(1, .1f);
 
         grindingPart.DOMoveY(0, .25f).SetDelay(_grindDuration);
-        gateParent.DOMoveY(0, .25f).SetDelay(_grindDuration);
+        gateParent.DOMoveY(0, .25f).SetDelay(_grindDuration).OnComplete(() => blockingQuad.SetActive(false));
 
         grindParticle.Play();
         ParticleSystemRenderer particleRenderer = grindParticle.GetComponent<ParticleSystemRenderer>();

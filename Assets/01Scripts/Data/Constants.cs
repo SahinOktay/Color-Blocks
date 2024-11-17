@@ -26,5 +26,20 @@ namespace FOMO
             public const string TOUCH_START = "TouchStart";
             public const string TOUCH_MOVE = "TouchMove";
         }
+
+        public static class Calculators
+        {
+            public static Vector2Int GetDirectionVector(int direction)
+            {
+                return direction switch
+                {
+                    0 => Vector2Int.down,
+                    1 => Vector2Int.right,
+                    2 => Vector2Int.up,
+                    3 => Vector2Int.left,
+                    _ => Vector2Int.zero,
+                };
+            }
+        }
     }
 }

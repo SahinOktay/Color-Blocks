@@ -9,6 +9,6 @@ namespace FOMO
 
         public BlockColor Color { get; }
         public void GetGrinded(Vector3 pos, float duration);
-        public void MoveAndExit(Vector3 pos, bool isPositiveDirection);
+        public void MoveAndExit(Vector3 pos, bool isPositiveDirection, int directionNumber);
     }
 }
