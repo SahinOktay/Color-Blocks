@@ -11,7 +11,7 @@ namespace FOMO
     {
         public struct ExitKey
         {
-            public Dimention dimention;
+            public int direction;
             public Vector2Int coordinates;
         }
 
@@ -23,9 +23,10 @@ namespace FOMO
             doubleBlock;
         [SerializeField] private PlayerInput playerInput;
 
-        private Dictionary<ExitKey, Exit> _exits = new();
+        private readonly Dictionary<ExitKey, Exit> _exits = new();
         private float _movePixelThreshold;
         private GridCell[][] _grid;
+        private readonly HashSet<Block> _blocks = new();
         private InputAction _touchStartAction, _touchMoveAction;
         private Movable _movable;
         private Vector2 _touchStartPos;
@@ -88,12 +89,12 @@ namespace FOMO
                     Quaternion.Euler(0, 90 * levelData.ExitInfo[i].Direction, 0),
                     exitParent
                 ).GetComponent<Exit>();
-                spawnedExit.Initialize(new BlockColor[] { (BlockColor)levelData.ExitInfo[i].Colors });
+                spawnedExit.Initialize(new BlockColor[] { (BlockColor)levelData.ExitInfo[i].Colors }, levelData.ExitInfo[i].Direction);
                 _exits.Add(
                     new ExitKey()
                     {
                         coordinates = new Vector2Int(levelData.ExitInfo[i].Col, levelData.ExitInfo[i].Row),
-                        dimention = Constants.Arrays.HORI_DIRECTIONS.Contains(levelData.ExitInfo[i].Direction) ? Dimention.Horizontal : Dimention.Vertical
+                        direction = levelData.ExitInfo[i].Direction
                     }
                     ,
                     spawnedExit
@@ -122,11 +123,14 @@ namespace FOMO
                     movableParent
                 ).GetComponent<Block>();
 
+                spawnedBlock.Destroyed += OnBlockDestroyed;
+
                 spawnedBlock.Initialize(
                     (BlockColor)levelData.MovableInfo[i].Colors,
                     dimention
                 );
                 spawnedBlock.coordinates = blockCoordinates;
+                _blocks.Add(spawnedBlock);
 
                 for (int j = 0; j < levelData.MovableInfo[i].Length; j++)
                 {
@@ -155,6 +159,12 @@ namespace FOMO
             _touchMoveAction = playerInput.currentActionMap.FindAction(Constants.Actions.TOUCH_MOVE);
             
             _touchStartAction.performed += OnTouch;
+        }
+
+        private void OnBlockDestroyed(Block block)
+        {
+            block.Destroyed -= OnBlockDestroyed;
+            EmptyCells(block);
         }
 
         private void OnTouch(InputAction.CallbackContext context)
@@ -188,6 +198,12 @@ namespace FOMO
             Dimention movementDimention = Mathf.Abs(differenceVector.x) > Mathf.Abs(differenceVector.y) ? 
                 Dimention.Horizontal : Dimention.Vertical;
 
+            int movementDirection;
+            if (movementDimention == Dimention.Horizontal)
+                movementDirection = differenceVector.x > 0 ? 1 : 3;
+            else
+                movementDirection = differenceVector.y > 0 ? 0 : 2;
+
             if (_movable.Dimention != movementDimention) 
             {
                 _touchMoveAction.performed -= OnTouchMove;
@@ -195,15 +211,19 @@ namespace FOMO
                 return; 
             }
 
-            Vector2Int directionVector = new Vector2Int(
-                movementDimention == Dimention.Horizontal ? (differenceVector.x < 0 ? -1 : 1) : 0,
-                movementDimention == Dimention.Vertical ? (differenceVector.y < 0 ? 1 : -1) : 0
-            );
+            Vector2Int directionVector = movementDirection switch
+            {
+                0 => Vector2Int.down,
+                1 => Vector2Int.right,
+                2 => Vector2Int.up,
+                3 => Vector2Int.left,
+                _ => Vector2Int.zero,
+            };
 
             // This variable is used to calculate which cells to check
             // If direction is positive we need to consider length of the block
             // If it is negative length is not included in the calculation because pivots of the blocks are at the start of the block
-            bool isPositiveDirection = directionVector.x > 0 || directionVector.y > 0;
+            bool isPositiveDirection = movementDirection is 1 or 2;
 
             Vector2Int currentCell = _movable.coordinates + 
                 (isPositiveDirection ? (directionVector * (_movable.Length - 1)) : Vector2Int.zero);
@@ -227,10 +247,10 @@ namespace FOMO
             }
 
             ExitKey exitKey = new ExitKey() {
-                dimention = movementDimention,
+                direction = movementDirection,
                 coordinates = nextCellToCheck - directionVector
             };
-            bool isExiting = _exits.ContainsKey(exitKey);
+            bool isExiting = _exits.ContainsKey(exitKey) && _movable is IGrindable;
 
             if (movementCount == 0 && !isExiting) 
             {
@@ -241,30 +261,36 @@ namespace FOMO
 
             Vector2Int targetCell = _movable.coordinates + directionVector * movementCount;
 
-            EmptyCells();
+            EmptyCells(_movable);
 
+            _movable.coordinates = targetCell;
+            _movable.direction = movementDirection;
             if (!isExiting)
             {
                 _movable.Move(_grid[targetCell.y][targetCell.x].tile.transform.position);
-                _movable.coordinates = targetCell;
 
                 FillCells();
             }
             else
             {
-                _movable.MoveAndExit(_grid[targetCell.y][targetCell.x].tile.transform.position, _exits[exitKey]);
+                IGrindable grindable = _movable as IGrindable;
+                _exits[exitKey].WaitForGrindable(grindable);
+                grindable.MoveAndExit(_grid[targetCell.y][targetCell.x].tile.transform.position, isPositiveDirection);
+                _blocks.Remove(_movable as Block);
             }
+
+            FillCells();
 
             _touchMoveAction.performed -= OnTouchMove;
             _touchStartAction.performed += OnTouch;
         }
 
-        private void EmptyCells()
+        private void EmptyCells(Movable movable)
         {
-            for (int i = 0; i < _movable.Length; i++)
+            for (int i = 0; i < movable.Length; i++)
             {
-                _grid[_movable.coordinates.y + (_movable.Dimention == Dimention.Vertical ? i : 0)]
-                    [_movable.coordinates.x + (_movable.Dimention == Dimention.Horizontal ? i : 0)]
+                _grid[movable.coordinates.y + (movable.Dimention == Dimention.Vertical ? i : 0)]
+                    [movable.coordinates.x + ( movable.Dimention == Dimention.Horizontal ? i : 0)]
                     .occupyingElement = null;
             }
         }

@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 778cc15d3aa6e47478bfa4ecbcde5df7
+guid: d18bf9b230f9dbd40a74f318036f60f6
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -7,7 +7,7 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: TT_checker_map_gravity
+      name: TT_checker_map_gravity.001
     second: {fileID: 2100000, guid: e4619100a0003b74b8f08ce8b64ab272, type: 2}
   materials:
     materialImportMode: 2
