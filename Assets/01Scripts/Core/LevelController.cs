@@ -2,6 +2,8 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using DG.Tweening;
+using System;
 
 namespace FOMO
 {
@@ -14,18 +16,16 @@ namespace FOMO
         }
 
         [SerializeField] private Camera mainCamera;
-        [SerializeField] 
-        private GameObject exitPrefab, 
-            gridTile, 
-            singleBlock, 
-            doubleBlock;
         [SerializeField] private PlayerInput playerInput;
         [SerializeField] private UIController uiController;
-        
+
+        [NonSerialized] public PoolManager poolManager;
+
         private bool _canMakeAMove = true;
         private readonly Dictionary<ExitKey, Exit> _exits = new();
         private float _movePixelThreshold;
-        private GridCell[][] _grid;
+        private GameObject _levelParent;
+        private GridTile[][] _grid;
         private readonly HashSet<Block> _blocks = new();
         private int _currentLevel = 4, _remainingMoves;
         private InputAction _touchStartAction, _touchMoveAction;
@@ -33,29 +33,34 @@ namespace FOMO
         private Vector2 _touchStartPos;
         private Vector2Int _gridSize;
 
-        [ContextMenu("Generate Level")]
-        public void Start()
+        public Action LevelComplete, LevelFail;
+
+        public void InitializeLevel(int currentLevel)
         {
+            _currentLevel = currentLevel;
             _movePixelThreshold = Screen.width * .1f;
-            GameObject levelParent = new GameObject("Level Parent");
+            _levelParent = new GameObject("Level Parent");
             Transform tileParent = new GameObject("Tile Parent").transform;
             Transform exitParent = new GameObject("Exit Parent").transform;
             Transform movableParent = new GameObject("Movable Parent").transform;
 
-            tileParent.transform.SetParent(levelParent.transform);
-            exitParent.transform.SetParent(levelParent.transform);
-            movableParent.transform.SetParent(levelParent.transform);
+            tileParent.transform.SetParent(_levelParent.transform);
+            exitParent.transform.SetParent(_levelParent.transform);
+            movableParent.transform.SetParent(_levelParent.transform);
 
             LevelData levelData = JsonUtility.FromJson<LevelData>(
                 Resources.Load<TextAsset>("Levels/Level" + _currentLevel).text
             );
 
-            _remainingMoves = levelData.MoveLimit;
+            if (levelData.MoveLimit == 0)
+                _remainingMoves = -1;
+            else 
+                _remainingMoves = levelData.MoveLimit;
 
             uiController.Initialize(_currentLevel, _remainingMoves);
 
             _gridSize = new Vector2Int(levelData.ColCount, levelData.RowCount);
-            List<List<GridCell>> gridList = new List<List<GridCell>>();
+            List<List<GridTile>> gridList = new List<List<GridTile>>();
 
             Vector3 firstTilePosition = new Vector3(
                 - _gridSize.x * .5f + .5f,
@@ -63,38 +68,40 @@ namespace FOMO
                 _gridSize.y * .5f - .5f
             );
 
-            GameObject spawnedTile;
+            // Spawn tiles
+            GridTile spawnedTile;
             for (int y = 0; y < _gridSize.y; y++)
             {
-                gridList.Add(new List<GridCell>());
+
+                gridList.Add(new List<GridTile>());
                 for (int x = 0; x < _gridSize.x; x++)
                 {
-                    spawnedTile = Instantiate(
-                        gridTile, 
-                        firstTilePosition + 
-                            Vector3.right * (x * Constants.Numbers.CELL_SIZE) +
-                            Vector3.back * (y * Constants.Numbers.CELL_SIZE), 
-                        gridTile.transform.rotation,
-                        tileParent
-                    );
-                    gridList[y].Add(new GridCell() { tile = spawnedTile });
+                    spawnedTile = poolManager.GetGridTile();
+                    spawnedTile.gameObject.SetActive(true);
+                    spawnedTile.transform.position = firstTilePosition +
+                        Vector3.right * (x * Constants.Numbers.CELL_SIZE) +
+                        Vector3.back * (y * Constants.Numbers.CELL_SIZE);
+                    spawnedTile.transform.SetParent(tileParent);
+
+                    gridList[y].Add(spawnedTile);
                 }
             }
 
             _grid = gridList.Select(item => item.ToArray()).ToArray();
 
+            // Spawn exits
             Exit spawnedExit;
             for (int i = 0; i < levelData.ExitInfo.Length; i++)
             {
-                spawnedExit = Instantiate(
-                    exitPrefab,
-                    firstTilePosition +
-                        Vector3.right * (levelData.ExitInfo[i].Col * Constants.Numbers.CELL_SIZE) +
-                        Vector3.back * (levelData.ExitInfo[i].Row * Constants.Numbers.CELL_SIZE),
-                    Quaternion.Euler(0, 90 * levelData.ExitInfo[i].Direction, 0),
-                    exitParent
-                ).GetComponent<Exit>();
+                spawnedExit = poolManager.GetExit();
+                spawnedExit.gameObject.SetActive(true);
+                spawnedExit.transform.position = firstTilePosition +
+                    Vector3.right * (levelData.ExitInfo[i].Col * Constants.Numbers.CELL_SIZE) +
+                    Vector3.back * (levelData.ExitInfo[i].Row * Constants.Numbers.CELL_SIZE);
+                spawnedExit.transform.eulerAngles = new Vector3(0, 90 * levelData.ExitInfo[i].Direction, 0);
+                spawnedExit.transform.SetParent(exitParent);
                 spawnedExit.Initialize(new BlockColor[] { (BlockColor)levelData.ExitInfo[i].Colors }, levelData.ExitInfo[i].Direction);
+
                 _exits.Add(
                     new ExitKey()
                     {
@@ -106,6 +113,7 @@ namespace FOMO
                 );
             }
 
+            // Spawn blocks
             Block spawnedBlock;
             Vector2Int blockCoordinates;
             for (int i = 0; i < levelData.MovableInfo.Length; i++)
@@ -115,19 +123,13 @@ namespace FOMO
 
                 blockCoordinates = new Vector2Int(levelData.MovableInfo[i].Col, levelData.MovableInfo[i].Row);
 
-                spawnedBlock = Instantiate(
-                    levelData.MovableInfo[i].Length == 1 ? singleBlock : doubleBlock,
-                    firstTilePosition +
-                        Vector3.right * (blockCoordinates.x * Constants.Numbers.CELL_SIZE) +
-                        Vector3.back * (blockCoordinates.y * Constants.Numbers.CELL_SIZE),
-                    Quaternion.Euler(
-                        0,
-                        dimention == Dimention.Horizontal ? 0 : 90,
-                        0
-                    ),
-                    movableParent
-                ).GetComponent<Block>();
-
+                spawnedBlock = poolManager.GetBlock(levelData.MovableInfo[i].Length);
+                spawnedBlock.gameObject.SetActive(true);
+                spawnedBlock.transform.eulerAngles = new Vector3(0, dimention == Dimention.Horizontal ? 0 : 90, 0);
+                spawnedBlock.transform.position = firstTilePosition +
+                    Vector3.right * (blockCoordinates.x * Constants.Numbers.CELL_SIZE) +
+                    Vector3.back * (blockCoordinates.y * Constants.Numbers.CELL_SIZE);
+                spawnedBlock.transform.SetParent(movableParent);
                 spawnedBlock.Destroyed += OnBlockDestroyed;
 
                 spawnedBlock.Initialize(
@@ -146,7 +148,17 @@ namespace FOMO
                 }
             }
 
-            // Handle camera view
+            HandleCameraView();
+
+            // Cache input actions
+            _touchStartAction = playerInput.currentActionMap.FindAction(Constants.Actions.TOUCH_START);
+            _touchMoveAction = playerInput.currentActionMap.FindAction(Constants.Actions.TOUCH_MOVE);
+            
+            _touchStartAction.performed += OnTouch;
+        }
+
+        private void HandleCameraView()
+        {
             Vector3 camCenterLeftRay = mainCamera.ScreenPointToRay(Vector3.zero).direction;
             camCenterLeftRay = new Vector3(camCenterLeftRay.x, camCenterLeftRay.y, 0);
 
@@ -159,26 +171,63 @@ namespace FOMO
 
             // Handle camera position for looking at the center of the grid
             mainCamera.transform.position = mainCamera.transform.forward * (mainCamera.transform.position.y / mainCamera.transform.forward.y);
+        }
 
-            _touchStartAction = playerInput.currentActionMap.FindAction(Constants.Actions.TOUCH_START);
-            _touchMoveAction = playerInput.currentActionMap.FindAction(Constants.Actions.TOUCH_MOVE);
-            
-            _touchStartAction.performed += OnTouch;
+        public void ClearLevel()
+        {
+            foreach (Block b in _blocks)
+                poolManager.RecycleBlock(b);
+
+            foreach (KeyValuePair<ExitKey, Exit> pair in _exits)
+                poolManager.RecycleExit(pair.Value);
+
+            _exits.Clear();
+
+            for (int i = 0; i < _grid.Length; i++)
+                for (int j = 0; j < _grid[i].Length; j++)
+                    poolManager.RecycleGridTile(_grid[i][j]);
+
+            Destroy(_levelParent);
+        }
+
+        private void RetryButtonClick()
+        {
+            uiController.RetryButtonClick -= RetryButtonClick;
+            LevelFail?.Invoke();
+        }
+
+        private void NextButtonClick()
+        {
+            uiController.NextButtonClick -= NextButtonClick;
+            LevelComplete?.Invoke();
         }
 
         private void Win()
         {
-            Debug.Log("Win");
+            _levelParent.transform.DOMove(
+                _levelParent.transform.position + mainCamera.transform.forward * 10,
+                1f
+            ).SetEase(Ease.OutCubic);
+            _levelParent.transform.DORotate(new Vector3(-36f, -90f, -36f), 1f).SetEase(Ease.OutCubic);
+            uiController.ShowFinalCanvas(true);
+            uiController.NextButtonClick += NextButtonClick;
         }
 
         private void Lose()
         {
-            Debug.Log("Lose");
+            _levelParent.transform.DOMove(
+                _levelParent.transform.position + mainCamera.transform.forward * 10,
+                1f
+            ).SetEase(Ease.OutCubic);
+            _levelParent.transform.DORotate(new Vector3(- 36f, -90f, -36f), 1f).SetEase(Ease.OutCubic);
+            uiController.ShowFinalCanvas(false);
+            uiController.RetryButtonClick += RetryButtonClick;
         }
 
         private void OnBlockDestroyed(Block block)
         {
             block.Destroyed -= OnBlockDestroyed;
+            poolManager.RecycleBlock(block);
             _blocks.Remove(block);
             EmptyCells(block);
 
@@ -267,12 +316,16 @@ namespace FOMO
                 nextCellToCheck += directionVector;
             }
 
+            // This variable is for _exits dictionary
             ExitKey exitKey = new ExitKey() {
                 direction = directionNumber,
                 coordinates = nextCellToCheck - directionVector
             };
+
+            // Check if exit exists
             bool isExiting = _exits.ContainsKey(exitKey) && _movable is IGrindable;
 
+            // If there is not any movement
             if (movementCount == 0 && !isExiting) 
             {
                 _touchMoveAction.performed -= OnTouchMove;
@@ -282,6 +335,7 @@ namespace FOMO
                 return; 
             }
 
+            // Cell to move
             Vector2Int targetCell = _movable.coordinates + directionVector * movementCount;
 
             EmptyCells(_movable);
@@ -291,18 +345,16 @@ namespace FOMO
             {
                 _canMakeAMove = false;
                 _movable.MovementEnded += PushOtherBlocks;
-                _movable.Move(_grid[targetCell.y][targetCell.x].tile.transform.position, directionNumber);
-
-                FillCells();
+                _movable.Move(_grid[targetCell.y][targetCell.x].transform.position, directionNumber);;
             }
             else
             {
                 _canMakeAMove = false;
                 IGrindable grindable = _movable as IGrindable;
-                grindable.MoveAndExit(_grid[targetCell.y][targetCell.x].tile.transform.position, isPositiveDirection, directionNumber);
+                grindable.MoveAndExit(_grid[targetCell.y][targetCell.x].transform.position, isPositiveDirection, directionNumber);
                 if (!_exits[exitKey].WaitForGrindable(grindable))
                 {
-                    _movable.MovementEnded += EnableMovement;
+                    _movable.MovementEnded += BumpOnExit;
                 }
             }
 
@@ -310,7 +362,7 @@ namespace FOMO
 
             _touchMoveAction.performed -= OnTouchMove;
 
-            if (--_remainingMoves > 0) _touchStartAction.performed += OnTouch;
+            if (--_remainingMoves != 0) _touchStartAction.performed += OnTouch;
             uiController.SetMoveCount(_remainingMoves);
         }
 
@@ -334,10 +386,11 @@ namespace FOMO
             }
         }
 
-        private void EnableMovement(Movable movable, int directionNumber, int cellCount)
+        private void BumpOnExit(Movable movable, int directionNumber, int cellCount)
         {
             movable.MovementEnded -= PushOtherBlocks;
             _canMakeAMove = true;
+            if (_remainingMoves == 0) Lose();
         }
 
         private void PushOtherBlocks(Movable movable, int directionNumber, int cellCount)

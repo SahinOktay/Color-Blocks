@@ -1,10 +1,11 @@
 using UnityEngine;
 using DG.Tweening;
 using System;
+using PoolSystem;
 
 namespace FOMO
 {
-    public class Block : Movable, IGrindable
+    public class Block : Movable, IGrindable, IPoolable
     {
         [SerializeField] private AnimationCurve bounceBackEase;
         [SerializeField] private BlockTextureMap blockTextureMap;
@@ -45,11 +46,16 @@ namespace FOMO
 
         public void GetGrinded(Vector3 pos, float duration)
         {
-            transform.DOMove(transform.position + pos, duration).OnComplete(() => gameObject.SetActive(false));
+            transform.DOMove(transform.position + pos, duration);
             transform.DOShakeRotation(duration, 5, 20, fadeOut: false).OnComplete(() =>
             {
                 Destroyed?.Invoke(this);
             });
+        }
+
+        public void Reset()
+        {
+            bumpBone.transform.localEulerAngles = Vector3.zero;
         }
     }
 }
